@@ -7,6 +7,7 @@ If you encounter any different or additional obstacles let me know, and please f
 
 <hr>
 ####Sections
+&#8226; [Anaconda and Miniconda](#conda)<br>
 &#8226; [Consider a virtual environment](#venv)<br>
 &#8226; [Installing pip](#pip)<br>
 &#8226; [Installing NumPy](#numpy)<br>
@@ -18,19 +19,41 @@ If you encounter any different or additional obstacles let me know, and please f
 <br>
 <hr>
 <br>
+
+<a name="conda"></a>
+<br>
+<br>
+## Anaconda and Miniconda
+<br>
+
+Alternatively, instead of going through all the manual steps listed in the following sections, there is the [Anaconda Python distribution](https://store.continuum.io/cshop/anaconda/) for scientific computing. Although Anaconda is distributed by Continuum Analytics, it is completely free and includes more than 125 packages for science and data analysis.  
+The installation procedure is nicely summarized here: [http://docs.continuum.io/anaconda/install.html](http://docs.continuum.io/anaconda/install.html)
+
+If this is too much, the [Miniconda](http://repo.continuum.io/miniconda/) might be right for you. Miniconda is basically just a Python distribution with the Conda package manager, which let's us install a list of Python packages into a specified conda environment.
+
+<pre>
+$[bash]> conda create -n myenv python=3
+$[bash]> conda install -n myenv numpy scipy matplotlib ipython
+</pre>
+
+Note: environments will be created in `ROOT_DIR/envs` by default, you can use the `-p` instead of the `-n` flag in the conda commands above in order to specify a custom path.
+
+If you we decided pro Anaconda or Miniconda, we are basically done at this point. The following sections are explaining a more (semi)-manual approach to install the packages individually using `pip`.
+
+
 <a name="venv"></a>
 <br>
 <br>
 ## Consider a virtual environment
 <br>
-Alternatively, in order to not mess around with our system packages, we can consider setting up an virtual environment when we want to install the additional scientific packages.   
+In order to not mess around with our system packages, we should consider setting up a virtual environment when we want to install the additional scientific packages.   
 To set up a new virtual environment, we can use the following command
 
-<pre>[bash$]> python3 -m venv /path_to/my_virtual_env</pre>
+<pre>$[bash]> python3 -m venv /path_to/my_virtual_env</pre>
 
 and activate it via
 
-<pre>[bash$]> source /path_to/my_virtual_env/bin/activate</pre>
+<pre>$[bash]> source /path_to/my_virtual_env/bin/activate</pre>
 
 
 
@@ -41,7 +64,7 @@ and activate it via
 <br>
 `pip` is a tool for installing and managing Python packages. It makes the installation process for Python packages a lot easier, since they don't have to be downloaded manually.  
 If you haven't installed the `pip` package for your version of Python, yet, I'd suggest to download it from [https://pypi.python.org/pypi/pip](https://pypi.python.org/pypi/pip), unzip it, and install it from the unzipped directory via 
-<pre>[bash$]> python3 setup.py install</pre>
+<pre>$[bash]> python3 setup.py install</pre>
 
 
 <a name="numpy"></a>
@@ -51,7 +74,7 @@ If you haven't installed the `pip` package for your version of Python, yet, I'd 
 <br>
 Installing NumPy should be straight forward now using `pip`
 
-<pre>[bash$]> python3 -m pip install numpy</pre>
+<pre>$[bash]> python3 -m pip install numpy</pre>
 
 The installation will probably take a few minutes due to the source files that have to be compiled for your machine. Once it is installed, `NumPy` should be available in Python via
 
@@ -74,7 +97,7 @@ For example, `gfortran` for MacOS 10.9 can be downloaded from [http://coudert.na
 
 Just double-click on the downloaded .DMG container and follow the familiar MacOS X installation procedure. Once it is installed, the `gfortran` compiler should be available from the command line,. We can test it by typing
 
-<pre>[bash$]> gfortran -v</pre>
+<pre>$[bash]> gfortran -v</pre>
 Among other information, we will see the current version, e.g.,   
 <pre>gcc version 4.8.2 (GCC)</pre>
 
@@ -82,7 +105,7 @@ Among other information, we will see the current version, e.g.,
 #### Installing SciPy
 
 Now, we should be good to go to install `SciPy` using `pip`.  
-<pre>[bash$]> python3 -m pip install scipy</pre>
+<pre>$[bash]> python3 -m pip install scipy</pre>
 
 After it was successfully installed - might also take a couple of minutes due to the source code compilation - it should be available in Python via  
 <pre>>> import scipy</pre>
@@ -95,7 +118,7 @@ After it was successfully installed - might also take a couple of minutes due to
 <br>
 The installation process for matplotlib should go very smoothly using `pip`, I haven't encountered any hurdles here.
 
-<pre>[bash$]> python3 -m pip install matplotlib</pre>
+<pre>$[bash]> python3 -m pip install matplotlib</pre>
 
 After successful installation, it can be imported in Python via
 
@@ -114,7 +137,7 @@ The `matplotlib` library has become my favorite data plotting tool recently, you
 
 The IPython kernel requires the `pyzmq` package to run, `pyzmq` contains Python bindings for ØMQ, which is a lightweight and fast messaging implementation. It can be installed via `pip`.  
 
-<pre>[bash$]> python3 -m pip install pyzmq</pre>
+<pre>$[bash]> python3 -m pip install pyzmq</pre>
 
 <br>
 #### Installing pyside
@@ -125,7 +148,7 @@ When I was trying to install the `pyside` package, I had it complaining about th
 
 Just as we did with `gfortran` in the [Installing SciPy section](#scipy), double-click on the downloaded .DMG container and follow the familiar MacOS X installation procedure.  
 We can confirm that it was successfully installed by typing  
-<pre>[bash$]> cmake --version</pre>
+<pre>$[bash]> cmake --version</pre>
 into the command line where it would print something like
 
 <pre>cmake version 2.8.12.2</pre>
@@ -136,7 +159,7 @@ into the command line where it would print something like
 
 Now, we should finally be able to install IPython with all its further dependencies (pygments, Sphinx, jinja2, docutils, markupsafe) via  
 
-<pre>[bash$]> python3 -m pip install ipython[all]</pre>
+<pre>$[bash]> python3 -m pip install ipython[all]</pre>
 
 By doing this, we would install IPython to a custom location, e.g., `/Library/Frameworks/Python.framework/Versions/3.3/lib/python3.3/site-packages/IPython`. 
 
@@ -153,13 +176,13 @@ Finally, we can set an `alias` in our `.bash_profile` or `.bash_rc` file to conv
 
 Now we can run   
 
-<pre>[bash$]> ipython3</pre>
+<pre>$[bash]> ipython3</pre>
 
 
 from you shell terminal to launch the interactive IPython shell, and   
 
 
-<pre>[bash$]> ipython3 notebook</pre>
+<pre>$[bash]> ipython3 notebook</pre>
 
 
 to bring up the awesome IPython notebook in our browser, respectively.
@@ -173,4 +196,4 @@ to bring up the awesome IPython notebook in our browser, respectively.
 <br>
 Finally, if we want to keep our freshly installed packages up to date, we'd run `pip` with the `--upgrate` flag, for example
 
-<pre>[bash$]> python3 -m pip install numpy --upgrade </pre>
+<pre>$[bash]> python3 -m pip install numpy --upgrade </pre>

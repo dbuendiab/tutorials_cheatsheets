@@ -31,10 +31,10 @@ The installation procedure is nicely summarized here: [http://docs.continuum.io/
 
 If this is too much, the [Miniconda](http://repo.continuum.io/miniconda/) might be right for you. Miniconda is basically just a Python distribution with the Conda package manager, which let's us install a list of Python packages into a specified conda environment.
 
-<pre>
-$[bash]> conda create -n myenv python=3
-$[bash]> conda install -n myenv numpy scipy matplotlib ipython
-</pre>
+<div style="background: #ffffff; overflow:auto;width:auto;border:solid gray;border-width:.1em .1em .1em .8em;padding:.2em .6em;"><pre style="margin: 0; line-height: 125%"><span style="color: #996633">$[</span>bash<span style="color: #333333">]</span>&gt; conda create -n myenv <span style="color: #996633">python</span><span style="color: #333333">=</span>3
+<span style="color: #996633">$[</span>bash<span style="color: #333333">]</span>&gt; conda install -n myenv numpy scipy matplotlib ipython
+</pre></div>
+<br>
 
 Note: environments will be created in `ROOT_DIR/envs` by default, you can use the `-p` instead of the `-n` flag in the conda commands above in order to specify a custom path.
 
@@ -49,11 +49,14 @@ If you we decided pro Anaconda or Miniconda, we are basically done at this point
 In order to not mess around with our system packages, we should consider setting up a virtual environment when we want to install the additional scientific packages.   
 To set up a new virtual environment, we can use the following command
 
-<pre>$[bash]> python3 -m venv /path_to/my_virtual_env</pre>
+<div style="background: #ffffff; overflow:auto;width:auto;border:solid gray;border-width:.1em .1em .1em .8em;padding:.2em .6em;"><pre style="margin: 0; line-height: 125%"><span style="color: #996633">$[</span>bash<span style="color: #333333">]</span>&gt; python3 -m venv /path_to/my_virtual_env
+</pre></div>
+
 
 and activate it via
 
-<pre>$[bash]> source /path_to/my_virtual_env/bin/activate</pre>
+<div style="background: #ffffff; overflow:auto;width:auto;border:solid gray;border-width:.1em .1em .1em .8em;padding:.2em .6em;"><pre style="margin: 0; line-height: 125%"><span style="color: #996633">$[</span>bash<span style="color: #333333">]</span>&gt; <span style="color: #007020">source</span> /path_to/my_virtual_env/bin/activate
+</pre></div>
 
 
 
@@ -64,7 +67,8 @@ and activate it via
 <br>
 `pip` is a tool for installing and managing Python packages. It makes the installation process for Python packages a lot easier, since they don't have to be downloaded manually.  
 If you haven't installed the `pip` package for your version of Python, yet, I'd suggest to download it from [https://pypi.python.org/pypi/pip](https://pypi.python.org/pypi/pip), unzip it, and install it from the unzipped directory via 
-<pre>$[bash]> python3 setup.py install</pre>
+<div style="background: #ffffff; overflow:auto;width:auto;border:solid gray;border-width:.1em .1em .1em .8em;padding:.2em .6em;"><pre style="margin: 0; line-height: 125%"><span style="color: #996633">$[</span>bash<span style="color: #333333">]</span>&gt; python3 setup.py install
+</pre></div>
 
 
 <a name="numpy"></a>
@@ -74,11 +78,15 @@ If you haven't installed the `pip` package for your version of Python, yet, I'd 
 <br>
 Installing NumPy should be straight forward now using `pip`
 
-<pre>$[bash]> python3 -m pip install numpy</pre>
+<div style="background: #ffffff; overflow:auto;width:auto;border:solid gray;border-width:.1em .1em .1em .8em;padding:.2em .6em;"><pre style="margin: 0; line-height: 125%"><span style="color: #996633">$[</span>bash<span style="color: #333333">]</span>&gt; python3 -m pip install numpy
+</pre></div>
+
 
 The installation will probably take a few minutes due to the source files that have to be compiled for your machine. Once it is installed, `NumPy` should be available in Python via
 
-<pre>>> import numpy</pre>
+<div style="background: #ffffff; overflow:auto;width:auto;border:solid gray;border-width:.1em .1em .1em .8em;padding:.2em .6em;"><pre style="margin: 0; line-height: 125%"><span style="color: #888888">&gt;&gt; import numpy</span>
+</pre></div>
+
 
 If you want to see a few examples of how to operate with NumPy arrays, you can check out my [Matrix Cheatsheet for Moving from MATLAB matrices to NumPy arrays](http://sebastianraschka.com/Articles/2014_matlab_vs_numpy.html)
 
@@ -97,7 +105,9 @@ For example, `gfortran` for MacOS 10.9 can be downloaded from [http://coudert.na
 
 Just double-click on the downloaded .DMG container and follow the familiar MacOS X installation procedure. Once it is installed, the `gfortran` compiler should be available from the command line,. We can test it by typing
 
-<pre>$[bash]> gfortran -v</pre>
+<div style="background: #ffffff; overflow:auto;width:auto;border:solid gray;border-width:.1em .1em .1em .8em;padding:.2em .6em;"><pre style="margin: 0; line-height: 125%"><span style="color: #996633">$[</span>bash<span style="color: #333333">]</span>&gt; gfortran -v
+</pre></div>
+
 Among other information, we will see the current version, e.g.,   
 <pre>gcc version 4.8.2 (GCC)</pre>
 
@@ -105,10 +115,14 @@ Among other information, we will see the current version, e.g.,
 #### Installing SciPy
 
 Now, we should be good to go to install `SciPy` using `pip`.  
-<pre>$[bash]> python3 -m pip install scipy</pre>
+<div style="background: #ffffff; overflow:auto;width:auto;border:solid gray;border-width:.1em .1em .1em .8em;padding:.2em .6em;"><pre style="margin: 0; line-height: 125%"><span style="color: #996633">$[</span>bash<span style="color: #333333">]</span>&gt; python3 -m pip install scipy
+</pre></div><br>
+
 
 After it was successfully installed - might also take a couple of minutes due to the source code compilation - it should be available in Python via  
-<pre>>> import scipy</pre>
+
+<div style="background: #ffffff; overflow:auto;width:auto;border:solid gray;border-width:.1em .1em .1em .8em;padding:.2em .6em;"><pre style="margin: 0; line-height: 125%"><span style="color: #888888">&gt;&gt; import scipy</span>
+</pre></div>
 
 
 <a name="matplotlib"></a>
@@ -118,11 +132,14 @@ After it was successfully installed - might also take a couple of minutes due to
 <br>
 The installation process for matplotlib should go very smoothly using `pip`, I haven't encountered any hurdles here.
 
-<pre>$[bash]> python3 -m pip install matplotlib</pre>
+<div style="background: #ffffff; overflow:auto;width:auto;border:solid gray;border-width:.1em .1em .1em .8em;padding:.2em .6em;"><pre style="margin: 0; line-height: 125%"><span style="color: #996633">$[</span>bash<span style="color: #333333">]</span>&gt; python3 -m pip install matplotlib
+</pre></div>
+
 
 After successful installation, it can be imported in Python via
 
-<pre>>> import matplotlib</pre>
+<div style="background: #ffffff; overflow:auto;width:auto;border:solid gray;border-width:.1em .1em .1em .8em;padding:.2em .6em;"><pre style="margin: 0; line-height: 125%"><span style="color: #888888">&gt;&gt; import matplotlib</span>
+</pre></div>
 
 The `matplotlib` library has become my favorite data plotting tool recently, you can check out some examples in my little matplotlib-gallery on GitHub: [https://github.com/rasbt/matplotlib_gallery](https://github.com/rasbt/matplotlib_gallery)
 
@@ -137,7 +154,8 @@ The `matplotlib` library has become my favorite data plotting tool recently, you
 
 The IPython kernel requires the `pyzmq` package to run, `pyzmq` contains Python bindings for ØMQ, which is a lightweight and fast messaging implementation. It can be installed via `pip`.  
 
-<pre>$[bash]> python3 -m pip install pyzmq</pre>
+<div style="background: #ffffff; overflow:auto;width:auto;border:solid gray;border-width:.1em .1em .1em .8em;padding:.2em .6em;"><pre style="margin: 0; line-height: 125%"><span style="color: #996633">$[</span>bash<span style="color: #333333">]</span>&gt; python3 -m pip install pyzmq
+</pre></div>
 
 <br>
 #### Installing pyside
@@ -148,7 +166,9 @@ When I was trying to install the `pyside` package, I had it complaining about th
 
 Just as we did with `gfortran` in the [Installing SciPy section](#scipy), double-click on the downloaded .DMG container and follow the familiar MacOS X installation procedure.  
 We can confirm that it was successfully installed by typing  
-<pre>$[bash]> cmake --version</pre>
+<div style="background: #ffffff; overflow:auto;width:auto;border:solid gray;border-width:.1em .1em .1em .8em;padding:.2em .6em;"><pre style="margin: 0; line-height: 125%"><span style="color: #996633">$[</span>bash<span style="color: #333333">]</span>&gt; cmake --version
+</pre></div>
+
 into the command line where it would print something like
 
 <pre>cmake version 2.8.12.2</pre>
@@ -159,14 +179,18 @@ into the command line where it would print something like
 
 Now, we should finally be able to install IPython with all its further dependencies (pygments, Sphinx, jinja2, docutils, markupsafe) via  
 
-<pre>$[bash]> python3 -m pip install ipython[all]</pre>
+<div style="background: #ffffff; overflow:auto;width:auto;border:solid gray;border-width:.1em .1em .1em .8em;padding:.2em .6em;"><pre style="margin: 0; line-height: 125%"><span style="color: #996633">$[</span>bash<span style="color: #333333">]</span>&gt; python3 -m pip install ipython<span style="color: #333333">[</span>all<span style="color: #333333">]</span>
+</pre></div>
+
 
 By doing this, we would install IPython to a custom location, e.g., `/Library/Frameworks/Python.framework/Versions/3.3/lib/python3.3/site-packages/IPython`. 
 
 You can find the path to this location by importing IPython in Python and then print its path:
 
-<pre>>> import IPython
->> IPython.__path__</pre>
+<div style="background: #ffffff; overflow:auto;width:auto;border:solid gray;border-width:.1em .1em .1em .8em;padding:.2em .6em;"><pre style="margin: 0; line-height: 125%"><span style="color: #888888">&gt;&gt; import IPython</span>
+<span style="color: #888888">&gt;&gt; IPython.__path__</span>
+</pre></div>
+
 
 Finally, we can set an `alias` in our `.bash_profile` or `.bash_rc` file to conviniently run IPython from the console. E.g., 
 
@@ -176,13 +200,16 @@ Finally, we can set an `alias` in our `.bash_profile` or `.bash_rc` file to conv
 
 Now we can run   
 
-<pre>$[bash]> ipython3</pre>
+<div style="background: #ffffff; overflow:auto;width:auto;border:solid gray;border-width:.1em .1em .1em .8em;padding:.2em .6em;"><pre style="margin: 0; line-height: 125%"><span style="color: #996633">$[</span>bash<span style="color: #333333">]</span>&gt; ipython3
+</pre></div>
+
 
 
 from you shell terminal to launch the interactive IPython shell, and   
 
 
-<pre>$[bash]> ipython3 notebook</pre>
+<div style="background: #ffffff; overflow:auto;width:auto;border:solid gray;border-width:.1em .1em .1em .8em;padding:.2em .6em;"><pre style="margin: 0; line-height: 125%"><span style="color: #996633">$[</span>bash<span style="color: #333333">]</span>&gt; ipython3 notebook
+</pre></div>
 
 
 to bring up the awesome IPython notebook in our browser, respectively.
@@ -194,6 +221,8 @@ to bring up the awesome IPython notebook in our browser, respectively.
 
 ## Updating installed packages
 <br>
-Finally, if we want to keep our freshly installed packages up to date, we'd run `pip` with the `--upgrate` flag, for example
+Finally, if we want to keep our freshly installed packages up to date, we'd run `pip` with the `--upgrade` flag, for example
 
-<pre>$[bash]> python3 -m pip install numpy --upgrade </pre>
+<div style="background: #ffffff; overflow:auto;width:auto;border:solid gray;border-width:.1em .1em .1em .8em;padding:.2em .6em;"><pre style="margin: 0; line-height: 125%"><span style="color: #996633">$[</span>bash<span style="color: #333333">]</span>&gt; python3 -m pip install numpy --upgrade 
+</pre></div>
+

@@ -1,277 +1,668 @@
+<strong>
 
-<html>
+After I wrote the initial teaser article "<a href="http://sebastianraschka.com/Articles/sqlite3_database.html">SQLite - Working with large data sets in Python effectively</a>" about how awesome SQLite databases are via sqlite3 in Python, I wanted to delve a little bit more into the SQLite syntax and provide you with some more hands-on examples.
+ </strong></p></div>
 
 
+<br>
+<br>
+<p><img src="../Images/sqlite_python_logo.png" alt="sqlite_python_logo.png" /></p>
+<br>
+<br>
+  <hr>
 
-My new project confronted me with the task to screen a huge set of large data files in text format with billions of entries each.
 
-I will have to retrieve data repeatedly and frequently in future, thus I was tempted to find a better solution than brute-force scanning through ~20 separate 1-column text files with ~6 billion entries every time line by line.
+<h4>Sections</h4>
 
+<p>&#8226; <a href="#connecting">Connecting to an SQLite database</a><br>
+&#8226; <a href="#initializing">Creating a new SQLite database</a><br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&#45; <a href="#data_types">Overview of SQLite data types</a><br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&#45; <a href="#primary_keys">A quick word on PRIMARY KEYS:</a><br>
+&#8226; <a href="#addcols">Adding new columns</a><br>
+&#8226; <a href="#inserting_updating">Inserting and updating rows</a><br>
+&#8226; <a href="#unique_indexes">Creating unique indexes</a><br>
+&#8226; <a href="#querying">Querying the database - Selecting rows</a><br>
+&#8226; <a href="#security">Security and injection attacks</a><br>
+&#8226; <a href="#date_time">Date and time operations</a><br>
+&#8226; <a href="#db_summary">Printing a database summary</a><br>
+&#8226; <a href="#conclusion">Conclusion</a><br></p>
 
+The complete Python code that I am using in this tutorial can be downloaded from my GitHub repository: <a href="https://github.com/rasbt/python_sqlite_code">https://github.com/rasbt/python_sqlite_code</a> 
 
-#### OVERVIEW
+<br>  <br>
+<hr>
 
-[SQLite](#sqlite)
 
-[sqlite3 in a nutshell](#sqlite3)
+<p><a name="connecting"></a>
+<br></p>
 
-&nbsp;&nbsp;&nbsp;&nbsp;[Creating an SQLite database](#creating_db)
+<h2>Connecting to an SQLite database</h2>
 
-&nbsp;&nbsp;&nbsp;&nbsp;[Updating an existing database](#updating_db)
+<p>The sqlite3 that we will be using throughout this tutorial is part of the Python Standard Library and is a nice and easy interface to SQLite databases: There are no server processes involved, no configurations required, and no other obstacles we have to worry about.</p>
 
-&nbsp;&nbsp;&nbsp;&nbsp;[Querying the SQLite database](#querying_db)
+<p>In general, the only thing that needs to be done before we can perform any operation on a SQLite database via Python's <code>sqlite3</code> module, is to open a connection to an SQLite database file:</p>
 
-[Benchmarks](#benchmarks)
-		  
-&nbsp;&nbsp;&nbsp;&nbsp;[a) read_lines.py](#read_lines)
+<div style="background: #ffffff; overflow:auto;width:auto;border:solid gray;border-width:.1em .1em .1em .8em;padding:.2em .6em;"><pre style="margin: 0; line-height: 125%"><span style="color: #008800; font-weight: bold">import</span> <span style="color: #0e84b5; font-weight: bold">sqlite3</span>
+conn <span style="color: #333333">=</span> sqlite3<span style="color: #333333">.</span>connect(sqlite_file)
+c <span style="color: #333333">=</span> conn<span style="color: #333333">.</span>cursor()
+</pre></div>
 
-&nbsp;&nbsp;&nbsp;&nbsp;[b) create_sqlite_db.py](#create_sqlite)
 
-&nbsp;&nbsp;&nbsp;&nbsp;[c) query_sqlite_db.py](#query_sqlite)
 
-[Results and Conclusions](#results)
+<p>where the database file (<code>sqlite_file</code>) can reside anywhere on our disk, e.g.,</p>
 
+<div style="background: #ffffff; overflow:auto;width:auto;border:solid gray;border-width:.1em .1em .1em .8em;padding:.2em .6em;"><pre style="margin: 0; line-height: 125%">sqlite_file <span style="color: #333333">=</span> <span style="background-color: #fff0f0">&#39;/Users/Sebastian/Desktop/my_db.sqlite&#39;</span> 
+</pre></div>
 
 
+<p>Conveniently, a new database file (<code>.sqlite</code> file) will be created automatically the first time we try to connect to a database. However, we have to be aware that it won't have a table, yet. In the following section, we will take a look at some example code of how to create a new SQLite database files with tables for storing some data.</p>
 
+<p>To round up this section about connecting to a SQLite database file, there are two more operations that are worth mentioning.
+If we are finished with our operations on the database file, we have to close the connection via the <code>.close()</code> method:</p>
 
-![title](./images/database_input_txtfiles.png)
+<div style="background: #ffffff; overflow:auto;width:auto;border:solid gray;border-width:.1em .1em .1em .8em;padding:.2em .6em;"><pre style="margin: 0; line-height: 125%">conn<span style="color: #333333">.</span>close()
+</pre></div>
 
-At the end of the day, I wanted to have a unified database structure available that combines all those columns, which represent different features, that are currently listed in those separate text files. This database should be extendable, and my workflow will require that I can pull out entries with intersecting features for further computation efficiently.
 
-So I've been looking around and it was not too long until I stumbled upon this awesome sqlite3 Python module for working with SQLite database structures.
 
-Fortunately, you don't have to be an SQL expert to dive in, the sqlite3 module documentation is really well written and will serve you as a good point of entry:
+<p>And if we performed any operation on the database other than sending queries, we need to commit those changes via the <code>.commit()</code> method before we close the connection:</p>
 
-[http://docs.python.org/2/library/sqlite3.html](http://docs.python.org/2/library/sqlite3.html)
+<div style="background: #ffffff; overflow:auto;width:auto;border:solid gray;border-width:.1em .1em .1em .8em;padding:.2em .6em;"><pre style="margin: 0; line-height: 125%">conn<span style="color: #333333">.</span>commit()
+conn<span style="color: #333333">.</span>close()
+</pre></div>
 
-![title](./images/sqlite_logo.png) 
 
-SQLite is an open-source SQL database engine that is ideal for smaller workgroups, because it is a single locally stored database file that does not require any server infrastructure.
+<p><a name="initializing"></a>
+<br></p>
 
-Furthermore, SQLite works on all common operating systems and is compatible to 32bit and 64bit machines. There are plenty of applications that let you use the powerful SQL syntax, and SQLite has gained a reputation of being very reliable as it is used by popular companies, such as Google, Mozilla, Adobe, Apple, Microsoft, etc. The only downside I could find was that there is a size limit of 140 terabytes per database file, but "foreign keys" allow cross-queries between different data base files, so even this size limit shouldn't be a big concern.
+<h2>Creating a new SQLite database</h2>
 
-If you want to learn more about SQLite, you can check out their website at [http://www.sqlite.org](http://www.sqlite.org).
+<p>Let us have a look at some example code to create a new SQLite database file with two tables: One with and one without a PRIMARY KEY column (don't worry, there is more information about PRIMARY KEYs further down in this section).</p>
 
-# sqlite3 in a nutshell
+<div style="background: #ffffff; overflow:auto;width:auto;border:solid gray;border-width:.1em .1em .1em .8em;padding:.2em .6em;"><pre style="margin: 0; line-height: 125%">mport sqlite3
 
-In the following section I will present some code to show how easy it is to use the sqlite3 module in Python. I added comments with the hope to make it as self-explanatory as possible.
-After the code examples I have some interesting benchmarks that demonstrates the efficiency of SQL queries.
+sqlite_file <span style="color: #333333">=</span> <span style="background-color: #fff0f0">&#39;my_first_db.sqlite&#39;</span>    <span style="color: #888888"># name of the sqlite database file</span>
+table_name1 <span style="color: #333333">=</span> <span style="background-color: #fff0f0">&#39;my_table_1&#39;</span>  <span style="color: #888888"># name of the table to be created</span>
+table_name2 <span style="color: #333333">=</span> <span style="background-color: #fff0f0">&#39;my_table_2&#39;</span>  <span style="color: #888888"># name of the table to be created</span>
+new_field <span style="color: #333333">=</span> <span style="background-color: #fff0f0">&#39;my_1st_column&#39;</span> <span style="color: #888888"># name of the column</span>
+field_type <span style="color: #333333">=</span> <span style="background-color: #fff0f0">&#39;INTEGER&#39;</span>  <span style="color: #888888"># column data type</span>
 
-## Creating an SQLite database
-<pre>
-    import sqlite3
+<span style="color: #888888"># Connecting to the database file</span>
+conn <span style="color: #333333">=</span> sqlite3<span style="color: #333333">.</span>connect(sqlite_file)
+c <span style="color: #333333">=</span> conn<span style="color: #333333">.</span>cursor()
 
-  # create new db and make connection
-    conn = sqlite3.connect('my_db.db')    
-    c = conn.cursor()
+<span style="color: #888888"># Creating a new SQLite table with 1 column</span>
+c<span style="color: #333333">.</span>execute(<span style="background-color: #fff0f0">&#39;CREATE TABLE {tn} ({nf} {ft})&#39;</span>\
+        <span style="color: #333333">.</span>format(tn<span style="color: #333333">=</span>table_name1, nf<span style="color: #333333">=</span>new_field, ft<span style="color: #333333">=</span>field_type))
 
-   # create table
-    c.execute('''CREATE TABLE my_db
-                 (id TEXT, my_var1 TEXT, my_var2 INT)''')
+<span style="color: #888888"># Creating a second table with 1 column and set it as PRIMARY KEY</span>
+<span style="color: #888888"># note that PRIMARY KEY column must consist of unique values!</span>
+c<span style="color: #333333">.</span>execute(<span style="background-color: #fff0f0">&#39;CREATE TABLE {tn} ({nf} {ft} PRIMARY KEY)&#39;</span>\
+        <span style="color: #333333">.</span>format(tn<span style="color: #333333">=</span>table_name2, nf<span style="color: #333333">=</span>new_field, ft<span style="color: #333333">=</span>field_type))
 
-   # insert one row of data
-    c.execute("INSERT INTO my_db VALUES ('ID_2352532','YES', 4)")
+<span style="color: #888888"># Committing changes and closing the connection to the database file</span>
+conn<span style="color: #333333">.</span>commit()
+conn<span style="color: #333333">.</span>close()
+</pre></div>
 
-    # insert multiple lines of data
-    multi_lines =[ ('ID_2352533','YES', 1),
-                   ('ID_2352534','NO', 0),
-                   ('ID_2352535','YES', 3),
-                   ('ID_2352536','YES', 9),
-                   ('ID_2352537','YES', 10) 
-                  ]
-    c.executemany('INSERT INTO my_db VALUES (?,?,?)', multi_lines)
 
-    # save (commit) the changes
-    conn.commit()
 
-    # close connection
-    conn.close()
-</pre>
+<p>Download the script: <a href="https://raw.github.com/rasbt/python_sqlite_code/master/code/create_new_db.py">create_new_db.py</a></p>
 
+<hr>
 
-**Note**:  As a careful reader pointed out in the comment section below, it would make sense to use integers as IDs instead of strings to increase computational efficiency - given that the relevant identifier consisted of numbers only.
-In the case I picked for this example (ID_2352533, ID_2352534, ...) the IDs seems to follow the same pattern: "ID_" + number. So instead of using it as is, we could convert it to an integer before we insert it into the database.
-E.g., by a simple Python expression:_ ` int("ID_2352533"[3:])`
 
+<p><strong>Tip:</strong> A handy tool to visualize and access SQLite databases is the free FireFox <a href="https://addons.mozilla.org/en-US/firefox/addon/sqlite-manager/?src">SQLite Manager</a> add-on. Throughout this article, I will use this tool to provide screenshots of the database structures that we created below the corresponding code sections.</p>
 
+<hr>
 
-## Updating an existing database
 
-<pre>
+<p><br>
+<br></p>
 
-import sqlite3
+<p><img src="../Images/1_sqlite3_init_db.png" alt="1_sqlite3_init_db.png" />
+<br>
+<br>
+Using the code above, we created a new <code>.sqlite</code> database file with 2 tables. Each table consists of currently one column only, which is of type INTEGER.</p>
 
-# make connection to existing db
-conn = sqlite3.connect('my_db.db')
-c = conn.cursor()
+<p><a name="data_types"></a>
+<br></p>
 
-# update field
-t = ('NO', 'ID_2352533', )
-c.execute("UPDATE my_db SET my_var1=? WHERE id=?", t)
-print "Total number of rows changed:", conn.total_changes
+<hr>
 
-# delete rows
-t = ('NO', )
-c.execute("DELETE FROM my_db WHERE my_var1=?", t)
-print "Total number of rows deleted: ", conn.total_changes
 
-# add column
-c.execute("ALTER TABLE my_db ADD COLUMN 'my_var3' TEXT")
+<p><strong>Here is a quick overview of all data types that are supported by SQLite 3:</strong></p>
 
-# save changes
-conn.commit()
+<ul>
+<li>INTEGER: A signed integer up to 8 bytes depending on the magnitude of the value.</li>
+<li>REAL: An 8-byte floating point value.</li>
+<li>TEXT: A text string, typically UTF-8 encoded (depending on the database encoding).</li>
+<li>BLOB: A blob of data (binary large object) for storing binary data.</li>
+<li>NULL: A NULL value, represents missing data or an empty cell.</li>
+</ul>
 
-# print column names
-c.execute("SELECT * FROM my_db")
-col_name_list = [tup[0] for tup in c.description]
-print col_name_list
 
-# close connection
-conn.close()
+<hr>
 
-</pre>
 
-## Querying the SQLite database
+<p>Looking at the table above, You might have noticed that SQLite 3 has no designated Boolean data type. However, this should not be an issue, since we could simply re-purpose the INTEGER type to represent Boolean values (0 = false, 1 = true).</p>
 
-<pre>
+<p><a name="primary_keys"></a>
+<br></p>
 
-import sqlite3
+<p><strong>A quick word on PRIMARY KEYS:</strong><br/>
+In our example code above, we set our 1 column in the second table to PRIMARY KEY. The advantage of a PRIMARY KEY index is a significant performance gain if we use the PRIMARY KEY column as query for accessing rows in the table. Every table can only have max. 1 PRIMARY KEY (single or multiple column(s)), and the values in this column MUST be unique! But more on column indexing in the a <a href="#unique_indexes">later section</a>.</p>
 
-# open existing database
-conn = sqlite3.connect('my_db.db')
+<p><a name="addcols"></a>
+<br></p>
 
-c = conn.cursor()
+<h2>Adding new columns</h2>
 
-# print all lines ordered by integer value in my_var2
-for row in c.execute('SELECT * FROM my_db ORDER BY my_var2'):
-    print row
+<p>If we want to add a new column to an existing SQLite database table, we can either leave the cells for each row empty (NULL value), or we can set a default value for each cell, which is pretty convenient for certain applications.<br/>
+Let's have a look at some code:</p>
 
-# print all lines that have "YES" as my_var1 value 
-# and have an integer value &lt;= 7 in my_var2
-t = ('YES',7,)
-for row in c.execute('SELECT * FROM my_db WHERE my_var1=? AND my_var2 &lt;= ?', t):
-    print row
+<!-- HTML generated using hilite.me --><div style="background: #ffffff; overflow:auto;width:auto;border:solid gray;border-width:.1em .1em .1em .8em;padding:.2em .6em;"><pre style="margin: 0; line-height: 125%"><span style="color: #008800; font-weight: bold">import</span> <span style="color: #0e84b5; font-weight: bold">sqlite3</span>
 
-# print all lines that have "YES" as my_var1 value 
-# and have an integer value &lt;= 7 in my_var2
-t = ('YES',7,)
-c.execute('SELECT * FROM my_db WHERE my_var1=? AND my_var2 &lt;= ?', t)
-rows = c.fetchall()
-for r in rows:
-    print r
+sqlite_file <span style="color: #333333">=</span> <span style="background-color: #fff0f0">&#39;my_first_db.sqlite&#39;</span>    <span style="color: #888888"># name of the sqlite database file</span>
+table_name <span style="color: #333333">=</span> <span style="background-color: #fff0f0">&#39;my_table_2&#39;</span>   <span style="color: #888888"># name of the table to be created</span>
+id_column <span style="color: #333333">=</span> <span style="background-color: #fff0f0">&#39;my_1st_column&#39;</span> <span style="color: #888888"># name of the PRIMARY KEY column</span>
+new_column1 <span style="color: #333333">=</span> <span style="background-color: #fff0f0">&#39;my_2nd_column&#39;</span>  <span style="color: #888888"># name of the new column</span>
+new_column2 <span style="color: #333333">=</span> <span style="background-color: #fff0f0">&#39;my_3nd_column&#39;</span>  <span style="color: #888888"># name of the new column</span>
+column_type <span style="color: #333333">=</span> <span style="background-color: #fff0f0">&#39;TEXT&#39;</span> <span style="color: #888888"># E.g., INTEGER, TEXT, NULL, REAL, BLOB</span>
+default_val <span style="color: #333333">=</span> <span style="background-color: #fff0f0">&#39;Hello World&#39;</span> <span style="color: #888888"># a default value for the new column rows</span>
 
-# close connection
-conn.close()
+<span style="color: #888888"># Connecting to the database file</span>
+conn <span style="color: #333333">=</span> sqlite3<span style="color: #333333">.</span>connect(sqlite_file)
+c <span style="color: #333333">=</span> conn<span style="color: #333333">.</span>cursor()
 
-</pre>
+<span style="color: #888888"># A) Adding a new column without a row value</span>
+c<span style="color: #333333">.</span>execute(<span style="background-color: #fff0f0">&quot;ALTER TABLE {tn} ADD COLUMN &#39;{cn}&#39; {ct}&quot;</span>\
+        <span style="color: #333333">.</span>format(tn<span style="color: #333333">=</span>table_name, cn<span style="color: #333333">=</span>new_column1, ct<span style="color: #333333">=</span>column_type))
 
-# Benchmarks
+<span style="color: #888888"># B) Adding a new column with a default row value</span>
+c<span style="color: #333333">.</span>execute(<span style="background-color: #fff0f0">&quot;ALTER TABLE {tn} ADD COLUMN &#39;{cn}&#39; {ct} DEFAULT &#39;{df}&#39;&quot;</span>\
+        <span style="color: #333333">.</span>format(tn<span style="color: #333333">=</span>table_name, cn<span style="color: #333333">=</span>new_column2, ct<span style="color: #333333">=</span>column_type, df<span style="color: #333333">=</span>default_val))
 
-After I tinkered with the sqlite3 module, my next important question was: How fast is SQLite really?
+<span style="color: #888888"># Committing changes and closing the connection to the database file</span>
+conn<span style="color: #333333">.</span>commit()
+conn<span style="color: #333333">.</span>close()
+</pre></div>
 
-To do some simple speed comparisons, I set up an example file of 6.1 Million lines (75 Mb) in order to measure the CPU time to 
 
- a) read in the text file line by line with simple Python code 
 
-b) read in the text file to create an SQLite database 
+<p>Download the script: <a href="https://raw.github.com/rasbt/python_sqlite_code/master/code/add_new_column.py">add_new_column.py</a></p>
 
-c) query the whole data base.
+<p><br>
+<br>
+<img src="../Images/2_sqlite3_add_col.png" alt="2_sqlite3_add_col.png" />
+<br>
+<br></p>
 
-I simply wanted to see how much I can gain by querying the database (c) in contrast to reading the whole file from scratch every time (a). I was also interested how long it might take to build the SQLite data base in the first place.
-Note that this is just a simplified example using a single text file consisting of one column. In a real application I would have to scan 20 files with 6 billion rows each or querying 1 database with 6 billion entries in 21 columns, respectively.
+<p>We just added 2 more columns (<code>my_2nd_column</code> and <code>my_3rd_column</code>) to <code>my_table_2</code> of our SQLite database next to the PRIMARY KEY column <code>my_1st_column</code>.<br/>
+The difference between the two new columns is that we initialized <code>my_3rd_column</code> with a default value (here:'Hello World'), which will be inserted for every existing cell under this column and for every new row that we are going to add to the table if we don't insert or update it with a different value.</p>
 
-Below you find the 3 short Python scripts that I used to measure the CPU time for the three scenarios a), b), and c) mentioned above.
+<p><a name="inserting_updating"></a>
+<br></p>
 
-## a) read_lines.py
+<h2>Inserting and updating rows</h2>
 
-<pre>
-import time
+<p>Inserting and updating rows into an existing SQLite database table - next to sending queries - is probably the most common database operation. The Structured Query Language has a convenient <code>UPSERT</code> function, which is basically just a merge between UPDATE and INSERT: It inserts new rows into a database table with a value for the PRIMARY KEY column if it does not exist yet, or updates a row for an existing PRIMARY KEY value.
+Unfortunately, this convenient syntax is not supported by the more compact SQLite database implementation that we are using here. However, there are some workarounds. But let us first have a look at the example code:</p>
 
-start_time = time.clock()
+<div style="background: #ffffff; overflow:auto;width:auto;border:solid gray;border-width:.1em .1em .1em .8em;padding:.2em .6em;"><pre style="margin: 0; line-height: 125%"><span style="color: #008800; font-weight: bold">import</span> <span style="color: #0e84b5; font-weight: bold">sqlite3</span>
 
-lines = 0
-    with open("feature1.txt", "rb") as fileobj:
-    for line in fileobj:
-    lines += 1
+sqlite_file <span style="color: #333333">=</span> <span style="background-color: #fff0f0">&#39;my_first_db.sqlite&#39;</span>
+table_name <span style="color: #333333">=</span> <span style="background-color: #fff0f0">&#39;my_table_2&#39;</span>
+id_column <span style="color: #333333">=</span> <span style="background-color: #fff0f0">&#39;my_1st_column&#39;</span>
+column_name <span style="color: #333333">=</span> <span style="background-color: #fff0f0">&#39;my_2nd_column&#39;</span>
 
-elapsed_time = time.clock() - start_time
-print "Time elapsed: {} seconds".format(elapsed_time)
-print "Read {} lines".format(lines)
-</pre>` 
+<span style="color: #888888"># Connecting to the database file</span>
+conn <span style="color: #333333">=</span> sqlite3<span style="color: #333333">.</span>connect(sqlite_file)
+c <span style="color: #333333">=</span> conn<span style="color: #333333">.</span>cursor()
 
-## b) create_sqlite_db.py
+<span style="color: #888888"># A) Inserts an ID with a specific value in a second column </span>
+<span style="color: #008800; font-weight: bold">try</span>:
+    c<span style="color: #333333">.</span>execute(<span style="background-color: #fff0f0">&quot;INSERT INTO {tn} ({idf}, {cn}) VALUES (123456, &#39;test&#39;)&quot;</span><span style="color: #333333">.</span>\
+        format(tn<span style="color: #333333">=</span>table_name, idf<span style="color: #333333">=</span>id_column, cn<span style="color: #333333">=</span>column_name))
+<span style="color: #008800; font-weight: bold">except</span> sqlite3<span style="color: #333333">.</span>IntegrityError:
+    <span style="color: #008800; font-weight: bold">print</span>(<span style="background-color: #fff0f0">&#39;ERROR: ID already exists in PRIMARY KEY column {}&#39;</span><span style="color: #333333">.</span>format(id_column))
 
-<pre>
+<span style="color: #888888"># B) Tries to insert an ID (if it does not exist yet)</span>
+<span style="color: #888888"># with a specific value in a second column </span>
+c<span style="color: #333333">.</span>execute(<span style="background-color: #fff0f0">&quot;INSERT OR IGNORE INTO {tn} ({idf}, {cn}) VALUES (123456, &#39;test&#39;)&quot;</span><span style="color: #333333">.</span>\
+        format(tn<span style="color: #333333">=</span>table_name, idf<span style="color: #333333">=</span>id_column, cn<span style="color: #333333">=</span>column_name))
 
-import sqlite3
-import time
+<span style="color: #888888"># C) Updates the newly inserted or pre-existing entry            </span>
+c<span style="color: #333333">.</span>execute(<span style="background-color: #fff0f0">&quot;UPDATE {tn} SET {cn}=(&#39;Hi World&#39;) WHERE {idf}=(123456)&quot;</span><span style="color: #333333">.</span>\
+        format(tn<span style="color: #333333">=</span>table_name, cn<span style="color: #333333">=</span>column_name, idf<span style="color: #333333">=</span>id_column))
 
-start_time = time.clock()
+conn<span style="color: #333333">.</span>commit()
+conn<span style="color: #333333">.</span>close()
+</pre></div>
 
-conn = sqlite3.connect('my_db1.db')
-c = conn.cursor()
 
-c.execute('''CREATE TABLE my_db1 (id TEXT, feature1 TEXT, feature2 INT)''')
 
-lines = 0
-lst = list()
+<p>Download the script: <a href="https://raw.github.com/rasbt/python_sqlite_code/master/code/update_or_insert_records.py">update_or_insert_records.py</a>
+<br>
+<br>
+<img src="../Images/3_sqlite3_insert_update.png" alt="3_sqlite3_insert_update.png" />
+<br>
+<br>
+Both A) <code>INSERT</code> and B) <code>INSERT OR IGNORE</code> have in common that they append new rows to the database if a given PRIMARY KEY does not exist in the database table, yet. However, if we'd try to append a PRIMARY KEY value that is not unique, a simple <code>INSERT</code> would raise an <code>sqlite3.IntegrityError</code> exception, which can be either captured via a try-except statement (case A) or circumvented by the SQLite call <code>INSERT OR IGNORE</code> (case B).
+This can be pretty useful if we want to construct an <code>UPSERT</code> equivalent in SQLite. E.g., if we want to add a dataset to an existing database table that contains a mix between existing and new IDs for our PRIMARY KEY column.</p>
 
-with open("feature1.txt", "rb") as myfile:
-    for line in myfile:
-    line = line.strip()
-    lst.append((line, "Yes", None))
-    lines += 1
-c.executemany("INSERT INTO my_db1 VALUES (?,?,?)", lst)
+<p><a name="unique_indexes"></a>
+<br></p>
 
-conn.commit()
-conn.close()
+<h2>Creating unique indexes</h2>
 
-elapsed_time = time.clock() - start_time
-print "Time elapsed: {} seconds".format(elapsed_time)
-print "Read {} lines".format(lines)
+<p>Just like hashtable-datastructures, indexes function as direct pointers to our data in a table for a particular column (i.e., the indexed column). For example, the PRIMARY KEY column would have such an index by default. The downside of indexes is that every row value in the column must be unique.  However, it is recommended and pretty useful to index certain columns if possible, since it rewards us with a significant performance gain for the data retrieval.<br/>
+The example code below shows how to add such an unique index to an existing column in an SQLite database table. And if we should decide to insert non-unique values into a indexed column later, there is also a convenient way to drop the index, which is also shown in the code below.</p>
 
-</pre></br>
+<!-- HTML generated using hilite.me --><div style="background: #ffffff; overflow:auto;width:auto;border:solid gray;border-width:.1em .1em .1em .8em;padding:.2em .6em;"><pre style="margin: 0; line-height: 125%"><span style="color: #008800; font-weight: bold">import</span> <span style="color: #0e84b5; font-weight: bold">sqlite3</span>
 
-## c) query_sqlite_db.py
+sqlite_file <span style="color: #333333">=</span> <span style="background-color: #fff0f0">&#39;my_first_db.sqlite&#39;</span>    <span style="color: #888888"># name of the sqlite database file</span>
+table_name <span style="color: #333333">=</span> <span style="background-color: #fff0f0">&#39;my_table_2&#39;</span>   <span style="color: #888888"># name of the table to be created</span>
+id_column <span style="color: #333333">=</span> <span style="background-color: #fff0f0">&#39;my_1st_column&#39;</span> <span style="color: #888888"># name of the PRIMARY KEY column</span>
+new_column <span style="color: #333333">=</span> <span style="background-color: #fff0f0">&#39;unique_names&#39;</span>  <span style="color: #888888"># name of the new column</span>
+column_type <span style="color: #333333">=</span> <span style="background-color: #fff0f0">&#39;TEXT&#39;</span> <span style="color: #888888"># E.g., INTEGER, TEXT, NULL, REAL, BLOB</span>
+index_name <span style="color: #333333">=</span> <span style="background-color: #fff0f0">&#39;my_unique_index&#39;</span>  <span style="color: #888888"># name for the new unique index</span>
 
-<pre>`
+<span style="color: #888888"># Connecting to the database file</span>
+conn <span style="color: #333333">=</span> sqlite3<span style="color: #333333">.</span>connect(sqlite_file)
+c <span style="color: #333333">=</span> conn<span style="color: #333333">.</span>cursor()
 
-import sqlite3
-import time
+<span style="color: #888888"># Adding a new column and update some record</span>
+c<span style="color: #333333">.</span>execute(<span style="background-color: #fff0f0">&quot;ALTER TABLE {tn} ADD COLUMN &#39;{cn}&#39; {ct}&quot;</span>\
+        <span style="color: #333333">.</span>format(tn<span style="color: #333333">=</span>table_name, cn<span style="color: #333333">=</span>new_column, ct<span style="color: #333333">=</span>column_type))
+c<span style="color: #333333">.</span>execute(<span style="background-color: #fff0f0">&quot;UPDATE {tn} SET {cn}=&#39;sebastian_r&#39; WHERE {idf}=123456&quot;</span><span style="color: #333333">.</span>\
+        format(tn<span style="color: #333333">=</span>table_name, idf<span style="color: #333333">=</span>id_column, cn<span style="color: #333333">=</span>new_column))
 
-start_time = time.clock()
+<span style="color: #888888"># Creating an unique index</span>
+c<span style="color: #333333">.</span>execute(<span style="background-color: #fff0f0">&#39;CREATE INDEX {ix} on {tn}({cn})&#39;</span>\
+        <span style="color: #333333">.</span>format(ix<span style="color: #333333">=</span>index_name, tn<span style="color: #333333">=</span>table_name, cn<span style="color: #333333">=</span>new_column))
 
-conn = sqlite3.connect('my_db1.db')
-c = conn.cursor()
+<span style="color: #888888"># Dropping the unique index</span>
+<span style="color: #888888"># E.g., to avoid future conflicts with update/insert functions</span>
+c<span style="color: #333333">.</span>execute(<span style="background-color: #fff0f0">&#39;DROP INDEX {ix}&#39;</span><span style="color: #333333">.</span>format(ix<span style="color: #333333">=</span>index_name))
 
-lines = 0
-lst = list()
-t = ('YES',)
-for row in c.execute('SELECT * FROM my_db1 WHERE feature1=?', t):
-    lst.append(row)
-    lines += 1
+<span style="color: #888888"># Committing changes and closing the connection to the database file</span>
+conn<span style="color: #333333">.</span>commit()
+conn<span style="color: #333333">.</span>close()
+</pre></div>
 
-conn.close()
 
-elapsed_time = time.clock() - start_time
-print "Time elapsed: {} seconds".format(elapsed_time)
-print "Read {} lines".format(lines)
+<p>Download the script: <a href="https://raw.github.com/rasbt/python_sqlite_code/master/code/create_unique_index.py">create_unique_index.py</a>
+<br>
+<br>
+<img src="../Images/4_sqlite3_unique_index.png" alt="4_sqlite3_unique_index.png" />
+<br>
+<br></p>
 
-</pre>
+<p><a name="querying"></a>
+<br></p>
 
-## Results and Conclusions
+<h2>Querying the database - Selecting rows</h2>
 
-As you can see in the chart below, the results are really impressive, and SQLite didn't disappoint.
-![title](./images/sqlite3_benchmark1.001.png)
+<p>After we learned about how to create and modify SQLite databases, it's about time for some data retrieval. The code below illustrates how we can retrieve row entries for all or some columns if they match certain criteria.</p>
 
-Python (on my machine) requires not more than 20 sec to go through 6 million lines of text (first column) - without any additional computation or analysis, however.
+<div style="background: #ffffff; overflow:auto;width:auto;border:solid gray;border-width:.1em .1em .1em .8em;padding:.2em .6em;"><pre style="margin: 0; line-height: 125%"><span style="color: #008800; font-weight: bold">import</span> <span style="color: #0e84b5; font-weight: bold">sqlite3</span>
 
-When it added those lines to a SQLite database, the CPU time just increases by one-third (second column).
-Reading the text file line by line is definitely faster than I expected, but sqlite3 puts the plain Python code in the shade: Querying my whole 6-million-entries-database and pulling out ALL of them just takes about 1 second (third column)! That is approximately 20x faster than Python code scanning a plain text file (remember that 1 have 20 text files and each of those is 1000x larger than this example file).
+sqlite_file <span style="color: #333333">=</span> <span style="background-color: #fff0f0">&#39;my_first_db.sqlite&#39;</span>    <span style="color: #888888"># name of the sqlite database file</span>
+table_name <span style="color: #333333">=</span> <span style="background-color: #fff0f0">&#39;my_table_2&#39;</span>   <span style="color: #888888"># name of the table to be queried</span>
+id_column <span style="color: #333333">=</span> <span style="background-color: #fff0f0">&#39;my_1st_column&#39;</span>
+some_id <span style="color: #333333">=</span> <span style="color: #0000DD; font-weight: bold">123456</span>
+column_2 <span style="color: #333333">=</span> <span style="background-color: #fff0f0">&#39;my_2nd_column&#39;</span>
+column_3 <span style="color: #333333">=</span> <span style="background-color: #fff0f0">&#39;my_3rd_column&#39;</span>    
 
-If we were to make a very simplified comparison: Imagine it would take Python ~5 min to go through every of my real data set files, and I have 20 of them. If I cross compare the data for intersecting features, I would easily end up with &gt; 2 h of CPU time. And this process would have to repeated for every time I set up a new screening.
-But if I would have my SQLite database, I could do the same thing in &lt; 1 min. For screening on a daily basis, after the first week I could already come down to 10 h Python line-by-line screening VS. 5 min SQL queries. I think it is just awesome.
+<span style="color: #888888"># Connecting to the database file</span>
+conn <span style="color: #333333">=</span> sqlite3<span style="color: #333333">.</span>connect(sqlite_file)
+c <span style="color: #333333">=</span> conn<span style="color: #333333">.</span>cursor()
+
+<span style="color: #888888"># 1) Contents of all columns for row that match a certain value in 1 column</span>
+c<span style="color: #333333">.</span>execute(<span style="background-color: #fff0f0">&#39;SELECT * FROM {tn} WHERE {cn}=&quot;Hi World&quot;&#39;</span><span style="color: #333333">.</span>\
+        format(tn<span style="color: #333333">=</span>table_name, cn<span style="color: #333333">=</span>column_2))
+all_rows <span style="color: #333333">=</span> c<span style="color: #333333">.</span>fetchall()
+<span style="color: #008800; font-weight: bold">print</span>(<span style="background-color: #fff0f0">&#39;1):&#39;</span>, all_rows)
+
+<span style="color: #888888"># 2) Value of a particular column for rows that match a certain value in column_1 </span>
+c<span style="color: #333333">.</span>execute(<span style="background-color: #fff0f0">&#39;SELECT ({coi}) FROM {tn} WHERE {cn}=&quot;Hi World&quot;&#39;</span><span style="color: #333333">.</span>\
+        format(coi<span style="color: #333333">=</span>column_2, tn<span style="color: #333333">=</span>table_name, cn<span style="color: #333333">=</span>column_2))
+all_rows <span style="color: #333333">=</span> c<span style="color: #333333">.</span>fetchall()
+<span style="color: #008800; font-weight: bold">print</span>(<span style="background-color: #fff0f0">&#39;2):&#39;</span>, all_rows)
+
+<span style="color: #888888"># 3) Value of 2 particular columns for rows that match a certain value in 1 column</span>
+c<span style="color: #333333">.</span>execute(<span style="background-color: #fff0f0">&#39;SELECT {coi1},{coi2} FROM {tn} WHERE {coi1}=&quot;Hi World&quot;&#39;</span><span style="color: #333333">.</span>\
+        format(coi1<span style="color: #333333">=</span>column_2, coi2<span style="color: #333333">=</span>column_3, tn<span style="color: #333333">=</span>table_name, cn<span style="color: #333333">=</span>column_2))
+all_rows <span style="color: #333333">=</span> c<span style="color: #333333">.</span>fetchall()
+<span style="color: #008800; font-weight: bold">print</span>(<span style="background-color: #fff0f0">&#39;3):&#39;</span>, all_rows)
+
+<span style="color: #888888"># 4) Selecting only up to 10 rows that match a certain value in 1 column</span>
+c<span style="color: #333333">.</span>execute(<span style="background-color: #fff0f0">&#39;SELECT * FROM {tn} WHERE {cn}=&quot;Hi World&quot; LIMIT 10&#39;</span><span style="color: #333333">.</span>\
+        format(tn<span style="color: #333333">=</span>table_name, cn<span style="color: #333333">=</span>column_2))
+ten_rows <span style="color: #333333">=</span> c<span style="color: #333333">.</span>fetchall()
+<span style="color: #008800; font-weight: bold">print</span>(<span style="background-color: #fff0f0">&#39;4):&#39;</span>, ten_rows)
+
+<span style="color: #888888"># 5) Check if a certain ID exists and print its column contents</span>
+c<span style="color: #333333">.</span>execute(<span style="background-color: #fff0f0">&quot;SELECT * FROM {tn} WHERE {idf}={my_id}&quot;</span><span style="color: #333333">.</span>\
+        format(tn<span style="color: #333333">=</span>table_name, cn<span style="color: #333333">=</span>column_2, idf<span style="color: #333333">=</span>id_column, my_id<span style="color: #333333">=</span>some_id))
+id_exists <span style="color: #333333">=</span> c<span style="color: #333333">.</span>fetchone()
+<span style="color: #008800; font-weight: bold">if</span> id_exists:
+    <span style="color: #008800; font-weight: bold">print</span>(<span style="background-color: #fff0f0">&#39;5): {}&#39;</span><span style="color: #333333">.</span>format(id_exists))
+<span style="color: #008800; font-weight: bold">else</span>:
+    <span style="color: #008800; font-weight: bold">print</span>(<span style="background-color: #fff0f0">&#39;5): {} does not exist&#39;</span><span style="color: #333333">.</span>format(some_id))
+
+<span style="color: #888888"># Closing the connection to the database file</span>
+conn<span style="color: #333333">.</span>close()
+</pre></div>
+
+
+<p>Download the script: <a href="https://raw.github.com/rasbt/python_sqlite_code/master/code/selecting_entries.py">selecting_entries.py</a>
+<br>
+<br></p>
+
+<p><img src="../Images/4_sqlite3_unique_index.png" alt="4_sqlite3_unique_index.png" />
+<br>
+<br>
+if we use the <code>.fetchall()</code> method, we return a list of tuples from the database query, where each tuple represents one row entry. The print output for the 5 different cases shown in the code above would look like this (note that we only have a table with 1 row here):
+<br>
+<br>
+<img src="../Images/6_sqlite3_print_selecting_rows.png" alt="6_sqlite3_print_selecting_rows.png" />
+<br>
+<br></p>
+
+<p><a name="security"></a>
+<br></p>
+
+
+<h2>Security and injection attacks</h2>
+
+<p>So far, we have been using Python's string formatting method to insert parameters like table and column names into the <code>c.execute()</code> functions. This is fine if we just want to use the database for ourselves. However, this leaves our database vulnerable to injection attacks. For example, if our database would be part of a web application, it would allow hackers to directly communicate with the database in order to bypass login and password verification and steal data.<br/>
+In order to prevent this, it is recommended to use <code>?</code> place holders in the SQLite commands instead of the <code>%</code> formatting expression or the <code>.format()</code> method, which we have been using in this tutorial.<br/>
+For example, instead of using</p>
+
+<div style="background: #ffffff; overflow:auto;width:auto;border:solid gray;border-width:.1em .1em .1em .8em;padding:.2em .6em;"><pre style="margin: 0; line-height: 125%"><span style="color: #888888"># 5) Check if a certain ID exists and print its column contents</span>
+c<span style="color: #333333">.</span>execute(<span style="background-color: #fff0f0">&quot;SELECT * FROM {tn} WHERE {idf}={my_id}&quot;</span><span style="color: #333333">.</span>\
+        format(tn<span style="color: #333333">=</span>table_name, cn<span style="color: #333333">=</span>column_2, idf<span style="color: #333333">=</span>id_column, my_id<span style="color: #333333">=</span>some_id))
+</pre></div>
+
+
+<p>in the <a href="#querying">Querying the database - Selecting rows</a> section above, we would want to use the <code>?</code> placeholder for the queried column value and include the variable(s) (here: <code>123456</code>), which we want to insert, as tuple at the end of the <code>c.execute()</code> string.</p>
+
+<div style="background: #ffffff; overflow:auto;width:auto;border:solid gray;border-width:.1em .1em .1em .8em;padding:.2em .6em;"><pre style="margin: 0; line-height: 125%"><span style="color: #888888"># 5) Check if a certain ID exists and print its column contents</span>
+c<span style="color: #333333">.</span>execute(<span style="background-color: #fff0f0">&quot;SELECT * FROM {tn} WHERE {idf}=?&quot;</span><span style="color: #333333">.</span>\
+        format(tn<span style="color: #333333">=</span>table_name, cn<span style="color: #333333">=</span>column_2, idf<span style="color: #333333">=</span>id_column), (<span style="color: #0000DD; font-weight: bold">123456</span>,))   
+</pre></div>
+
+<p>However, the problem with this approach is that it would only work for values, not for column or table names. So what are we supposed to do with the rest of the string if we want to protect ourselves from injection attacks?
+The easy solution would be to refrain from using variables in SQLite queries whenever possible, and if  it cannot be avoided, we would want to use a function that strips all non-alphanumerical characters from the stored content of the variable, e.g.,</p>
+
+<div style="background: #ffffff; overflow:auto;width:auto;border:solid gray;border-width:.1em .1em .1em .8em;padding:.2em .6em;"><pre style="margin: 0; line-height: 125%"><span style="color: #008800; font-weight: bold">def</span> <span style="color: #0066BB; font-weight: bold">clean_name</span>(some_var):
+    <span style="color: #008800; font-weight: bold">return</span> <span style="background-color: #fff0f0">&#39;&#39;</span><span style="color: #333333">.</span>join(char <span style="color: #008800; font-weight: bold">for</span> char <span style="color: #000000; font-weight: bold">in</span> some_var <span style="color: #008800; font-weight: bold">if</span> char<span style="color: #333333">.</span>isalnum())
+</pre></div>
+
+
+<p><a name="date_time"></a>
+<br></p>
+
+<h2>Date and time operations</h2>
+
+<p>SQLite inherited the convenient date and time operations from SQL, which are one of my favorite features of the Structured Query Language: It does not only allow us to insert dates and times in various different formats, but we can also perform simple <code>+</code> and <code>-</code> arithmetic, for example to look up entries that have been added xxx days ago.</p>
+
+<!-- HTML generated using hilite.me --><div style="background: #ffffff; overflow:auto;width:auto;border:solid gray;border-width:.1em .1em .1em .8em;padding:.2em .6em;"><pre style="margin: 0; line-height: 125%"><span style="color: #008800; font-weight: bold">import</span> <span style="color: #0e84b5; font-weight: bold">sqlite3</span>
+
+sqlite_file <span style="color: #333333">=</span> <span style="background-color: #fff0f0">&#39;my_first_db.sqlite&#39;</span>    <span style="color: #888888"># name of the sqlite database file</span>
+table_name <span style="color: #333333">=</span> <span style="background-color: #fff0f0">&#39;my_table_3&#39;</span>   <span style="color: #888888"># name of the table to be created</span>
+id_field <span style="color: #333333">=</span> <span style="background-color: #fff0f0">&#39;id&#39;</span> <span style="color: #888888"># name of the ID column</span>
+date_col <span style="color: #333333">=</span> <span style="background-color: #fff0f0">&#39;date&#39;</span> <span style="color: #888888"># name of the date column</span>
+time_col <span style="color: #333333">=</span> <span style="background-color: #fff0f0">&#39;time&#39;</span><span style="color: #888888"># name of the time column</span>
+date_time_col <span style="color: #333333">=</span> <span style="background-color: #fff0f0">&#39;date_time&#39;</span> <span style="color: #888888"># name of the date &amp; time column</span>
+field_type <span style="color: #333333">=</span> <span style="background-color: #fff0f0">&#39;TEXT&#39;</span>  <span style="color: #888888"># column data type</span>
+
+<span style="color: #888888"># Connecting to the database file</span>
+conn <span style="color: #333333">=</span> sqlite3<span style="color: #333333">.</span>connect(sqlite_file)
+c <span style="color: #333333">=</span> conn<span style="color: #333333">.</span>cursor()
+
+<span style="color: #888888"># Creating a new SQLite table with 1 column</span>
+c<span style="color: #333333">.</span>execute(<span style="background-color: #fff0f0">&#39;CREATE TABLE {tn} ({fn} {ft} PRIMARY KEY)&#39;</span>\
+        <span style="color: #333333">.</span>format(tn<span style="color: #333333">=</span>table_name, fn<span style="color: #333333">=</span>id_field, ft<span style="color: #333333">=</span>field_type))
+
+<span style="color: #888888"># A) Adding a new column to save date insert a row with the current date </span>
+<span style="color: #888888"># in the following format: YYYY-MM-DD</span>
+<span style="color: #888888"># e.g., 2014-03-06</span>
+c<span style="color: #333333">.</span>execute(<span style="background-color: #fff0f0">&quot;ALTER TABLE {tn} ADD COLUMN &#39;{cn}&#39;&quot;</span>\
+         <span style="color: #333333">.</span>format(tn<span style="color: #333333">=</span>table_name, cn<span style="color: #333333">=</span>date_col))
+<span style="color: #888888"># insert a new row with the current date and time, e.g., 2014-03-06</span>
+c<span style="color: #333333">.</span>execute(<span style="background-color: #fff0f0">&quot;INSERT INTO {tn} ({idf}, {cn}) VALUES(&#39;some_id1&#39;, DATE(&#39;now&#39;))&quot;</span>\
+         <span style="color: #333333">.</span>format(tn<span style="color: #333333">=</span>table_name, idf<span style="color: #333333">=</span>id_field, cn<span style="color: #333333">=</span>date_col))
+
+<span style="color: #888888"># B) Adding a new column to save date and time and update with the current time</span>
+<span style="color: #888888"># in the following format: HH:MM:SS</span>
+<span style="color: #888888"># e.g., 16:26:37</span>
+c<span style="color: #333333">.</span>execute(<span style="background-color: #fff0f0">&quot;ALTER TABLE {tn} ADD COLUMN &#39;{cn}&#39;&quot;</span>\
+         <span style="color: #333333">.</span>format(tn<span style="color: #333333">=</span>table_name, cn<span style="color: #333333">=</span>time_col))
+<span style="color: #888888"># update row for the new current date and time column, e.g., 2014-03-06 16:26:37</span>
+c<span style="color: #333333">.</span>execute(<span style="background-color: #fff0f0">&quot;UPDATE {tn} SET {cn}=TIME(&#39;now&#39;) WHERE {idf}=&#39;some_id1&#39;&quot;</span>\
+         <span style="color: #333333">.</span>format(tn<span style="color: #333333">=</span>table_name, idf<span style="color: #333333">=</span>id_field, cn<span style="color: #333333">=</span>time_col))
+
+<span style="color: #888888"># C) Adding a new column to save date and time and update with current date-time</span>
+<span style="color: #888888"># in the following format: YYYY-MM-DD HH:MM:SS</span>
+<span style="color: #888888"># e.g., 2014-03-06 16:26:37</span>
+c<span style="color: #333333">.</span>execute(<span style="background-color: #fff0f0">&quot;ALTER TABLE {tn} ADD COLUMN &#39;{cn}&#39;&quot;</span>\
+         <span style="color: #333333">.</span>format(tn<span style="color: #333333">=</span>table_name, cn<span style="color: #333333">=</span>date_time_col))
+<span style="color: #888888"># update row for the new current date and time column, e.g., 2014-03-06 16:26:37</span>
+c<span style="color: #333333">.</span>execute(<span style="background-color: #fff0f0">&quot;UPDATE {tn} SET {cn}=(CURRENT_TIMESTAMP) WHERE {idf}=&#39;some_id1&#39;&quot;</span>\
+         <span style="color: #333333">.</span>format(tn<span style="color: #333333">=</span>table_name, idf<span style="color: #333333">=</span>id_field, cn<span style="color: #333333">=</span>date_time_col))
+
+<span style="color: #888888"># The database should now look like this:</span>
+<span style="color: #888888"># id         date           time        date_time</span>
+<span style="color: #888888"># &quot;some_id1&quot; &quot;2014-03-06&quot;   &quot;16:42:30&quot;  &quot;2014-03-06 16:42:30&quot;</span>
+
+<span style="color: #888888"># 4) Retrieve all IDs of entries between 2 date_times</span>
+c<span style="color: #333333">.</span>execute(<span style="background-color: #fff0f0">&quot;SELECT {idf} FROM {tn} WHERE {cn} BETWEEN &#39;2013-03-06 10:10:10&#39; AND &#39;2015-03-06 10:10:10&#39;&quot;</span><span style="color: #333333">.</span>\
+    format(idf<span style="color: #333333">=</span>id_field, tn<span style="color: #333333">=</span>table_name, cn<span style="color: #333333">=</span>date_time_col))
+all_date_times <span style="color: #333333">=</span> c<span style="color: #333333">.</span>fetchall()
+<span style="color: #008800; font-weight: bold">print</span>(<span style="background-color: #fff0f0">&#39;4) all entries between ~2013 - 2015:&#39;</span>, all_date_times)
+
+<span style="color: #888888"># 5) Retrieve all IDs of entries between that are older than 1 day and 12 hrs</span>
+c<span style="color: #333333">.</span>execute(<span style="background-color: #fff0f0">&quot;SELECT {idf} FROM {tn} WHERE DATE(&#39;now&#39;) - {dc} &gt;= 1 AND DATE(&#39;now&#39;) - {tc} &gt;= 12&quot;</span><span style="color: #333333">.</span>\
+    format(idf<span style="color: #333333">=</span>id_field, tn<span style="color: #333333">=</span>table_name, dc<span style="color: #333333">=</span>date_col, tc<span style="color: #333333">=</span>time_col))
+all_1day12hrs_entries <span style="color: #333333">=</span> c<span style="color: #333333">.</span>fetchall()
+<span style="color: #008800; font-weight: bold">print</span>(<span style="background-color: #fff0f0">&#39;5) entries older than 1 day:&#39;</span>, all_1day12hrs_entries)
+
+<span style="color: #888888"># Committing changes and closing the connection to the database file</span>
+conn<span style="color: #333333">.</span>commit()
+conn<span style="color: #333333">.</span>close()
+</pre></div>
+
+
+<p>Download the script: <a href="https://raw.github.com/rasbt/python_sqlite_code/master/code/date_time_ops.py">date_time_ops.py</a></p>
+
+<p><br>
+<br>
+<img src="../Images/5_sqlite3_date_time.png" alt="5_sqlite3_date_time.png" />
+<br>
+<br></p>
+
+<p>Some of the really convenient functions that return the current time and date are:</p>
+
+<hr>
+
+<div style="background: #ffffff; overflow:auto;width:auto;border:solid gray;border-width:.1em .1em .1em .8em;padding:.2em .6em;"><pre style="margin: 0; line-height: 125%">DATE(<span style="background-color: #fff0f0">&#39;now&#39;</span>) <span style="color: #888888"># returns current date, e.g., 2014-03-06</span>
+TIME(<span style="background-color: #fff0f0">&#39;now&#39;</span>) <span style="color: #888888"># returns current time, e.g., 10:10:10</span>
+CURRENT_TIMESTAMP <span style="color: #888888"># returns current date and time, e.g., 2014-03-06 16:42:30</span>
+<span style="color: #888888">#  (or alternatively: DATETIME(&#39;now&#39;))</span>
+</pre></div>
+
+
+<hr>
+
+
+<p>The screenshot below shows the print outputs of the code that we used to query for entries that lie between a specified date interval using</p>
+
+<div style="background: #ffffff; overflow:auto;width:auto;border:solid gray;border-width:.1em .1em .1em .8em;padding:.2em .6em;"><pre style="margin: 0; line-height: 125%">BETWEEN <span style="background-color: #fff0f0">&#39;2013-03-06 10:10:10&#39;</span> AND <span style="background-color: #fff0f0">&#39;2015-03-06 10:10:10&#39;</span>
+</pre></div>
+
+
+
+<p>and entries that are older than 1 day via</p>
+
+<div style="background: #ffffff; overflow:auto;width:auto;border:solid gray;border-width:.1em .1em .1em .8em;padding:.2em .6em;"><pre style="margin: 0; line-height: 125%">WHERE DATE(<span style="background-color: #fff0f0">&#39;now&#39;</span>) <span style="color: #333333">-</span> some_date
+</pre></div>
+
+
+<p>Note that we don't have to provide the complete time stamps here, the same syntax applies to simple dates or simple times only, too.
+<br>
+<br>
+<img src="../Images/5_sqlite3_date_time_2.png" alt="5_sqlite3_date_time_2.png" />
+<br>
+<br></p>
+
+<p><a name="colnames"></a>
+<br></p>
+
+<h2>Retrieving column names</h2>
+
+<p>In the previous two sections we have seen how we query SQLite databases for data contents. Now let us have a look at how we retrieve its metadata (here: column names):</p>
+
+<div style="background: #ffffff; overflow:auto;width:auto;border:solid gray;border-width:.1em .1em .1em .8em;padding:.2em .6em;"><pre style="margin: 0; line-height: 125%"><span style="color: #008800; font-weight: bold">import</span> <span style="color: #0e84b5; font-weight: bold">sqlite3</span>
+
+sqlite_file <span style="color: #333333">=</span> <span style="background-color: #fff0f0">&#39;my_first_db.sqlite&#39;</span>
+table_name <span style="color: #333333">=</span> <span style="background-color: #fff0f0">&#39;my_table_3&#39;</span>
+
+<span style="color: #888888"># Connecting to the database file</span>
+conn <span style="color: #333333">=</span> sqlite3<span style="color: #333333">.</span>connect(sqlite_file)
+c <span style="color: #333333">=</span> conn<span style="color: #333333">.</span>cursor()
+
+<span style="color: #888888"># Retrieve column information</span>
+<span style="color: #888888"># Every column will be represented by a tuple with the following attributes:</span>
+<span style="color: #888888"># (id, name, type, notnull, default_value, primary_key)</span>
+c<span style="color: #333333">.</span>execute(<span style="background-color: #fff0f0">&#39;PRAGMA TABLE_INFO({})&#39;</span><span style="color: #333333">.</span>format(table_name))
+
+<span style="color: #888888"># collect names in a list</span>
+names <span style="color: #333333">=</span> [tup[<span style="color: #0000DD; font-weight: bold">1</span>] <span style="color: #008800; font-weight: bold">for</span> tup <span style="color: #000000; font-weight: bold">in</span> c<span style="color: #333333">.</span>fetchall()]
+<span style="color: #008800; font-weight: bold">print</span>(names)
+<span style="color: #888888"># e.g., [&#39;id&#39;, &#39;date&#39;, &#39;time&#39;, &#39;date_time&#39;]</span>
+
+<span style="color: #888888"># Closing the connection to the database file</span>
+conn<span style="color: #333333">.</span>close()
+</pre></div>
+
+
+<p>Download the script: <a href="https://raw.github.com/rasbt/python_sqlite_code/master/code/get_columnnames.py">get_columnnames.py</a>
+<br>
+<br>
+<img src="../Images/7_sqlite3_get_colnames_1.png" alt="7_sqlite3_get_colnames_1.png" />
+<br>
+<br>
+Since we haven't created a PRIMARY KEY column for <code>my_table_3</code>, SQLite automatically provides an indexed <code>rowid</code> column with unique ascending integer values, which will be ignored in our case.
+Using the <code>PRAGMA TABLE_INFO()</code> function on our table, we return a list of tuples, where each tuple contains the following information about every column in the table: <code>(id, name, type, notnull, default_value, primary_key)</code>.<br/>
+So, in order to get the names of every column in our table, we only have to grab the 2nd value in each tuple of the returned list, which can be done by <pre>names = [tup[1] for tup in c.fetchall()]</pre> after the <code>PRAGMA TABLE_INFO()</code> call. If we would print the contents of the variable <code>names</code> now, the output would look like this:
+<br>
+<br>
+<img src="../Images/7_sqlite3_get_colnames_2.png" alt="7_sqlite3_get_colnames_2.png" />
+<br>
+<br></p>
+
+<p><a name="db_summary"></a>
+<br></p>
+
+<h2>Printing a database summary</h2>
+
+<p>I hope we covered most of the basics about SQLite database operations in the previous sections, and by now we should be well equipped to get some serious work done using SQLite in Python.<br/>
+Let me conclude this tutorial with an obligatory "last but not least" and a convenient script to print a nice overview of SQLite database tables:</p>
+
+<div style="background: #ffffff; overflow:auto;width:auto;border:solid gray;border-width:.1em .1em .1em .8em;padding:.2em .6em;"><pre style="margin: 0; line-height: 125%"><span style="color: #008800; font-weight: bold">import</span> <span style="color: #0e84b5; font-weight: bold">sqlite3</span>
+
+<span style="color: #008800; font-weight: bold">def</span> <span style="color: #0066BB; font-weight: bold">connect</span>(sqlite_file):
+    <span style="color: #DD4422">&quot;&quot;&quot; Make connection to an SQLite database file &quot;&quot;&quot;</span>
+    conn <span style="color: #333333">=</span> sqlite3<span style="color: #333333">.</span>connect(sqlite_file)
+    c <span style="color: #333333">=</span> conn<span style="color: #333333">.</span>cursor()
+    <span style="color: #008800; font-weight: bold">return</span> conn, c
+
+<span style="color: #008800; font-weight: bold">def</span> <span style="color: #0066BB; font-weight: bold">close</span>(conn):
+    <span style="color: #DD4422">&quot;&quot;&quot; Commit changes and close connection to the database &quot;&quot;&quot;</span>
+    <span style="color: #888888"># conn.commit()</span>
+    conn<span style="color: #333333">.</span>close()
+
+<span style="color: #008800; font-weight: bold">def</span> <span style="color: #0066BB; font-weight: bold">total_rows</span>(cursor, table_name, print_out<span style="color: #333333">=</span><span style="color: #007020">False</span>):
+    <span style="color: #DD4422">&quot;&quot;&quot; Returns the total number of rows in the database &quot;&quot;&quot;</span>
+    c<span style="color: #333333">.</span>execute(<span style="background-color: #fff0f0">&#39;SELECT COUNT(*) FROM {}&#39;</span><span style="color: #333333">.</span>format(table_name))
+    count <span style="color: #333333">=</span> c<span style="color: #333333">.</span>fetchall()
+    <span style="color: #008800; font-weight: bold">if</span> print_out:
+        <span style="color: #008800; font-weight: bold">print</span>(<span style="background-color: #fff0f0">&#39;</span><span style="color: #666666; font-weight: bold; background-color: #fff0f0">\n</span><span style="background-color: #fff0f0">Total rows: {}&#39;</span><span style="color: #333333">.</span>format(count[<span style="color: #0000DD; font-weight: bold">0</span>][<span style="color: #0000DD; font-weight: bold">0</span>]))
+    <span style="color: #008800; font-weight: bold">return</span> count[<span style="color: #0000DD; font-weight: bold">0</span>][<span style="color: #0000DD; font-weight: bold">0</span>]
+
+<span style="color: #008800; font-weight: bold">def</span> <span style="color: #0066BB; font-weight: bold">table_col_info</span>(cursor, table_name, print_out<span style="color: #333333">=</span><span style="color: #007020">False</span>):
+    <span style="color: #DD4422">&quot;&quot;&quot; </span>
+<span style="color: #DD4422">       Returns a list of tuples with column informations:</span>
+<span style="color: #DD4422">      (id, name, type, notnull, default_value, primary_key)</span>
+<span style="color: #DD4422">    </span>
+<span style="color: #DD4422">    &quot;&quot;&quot;</span>
+    c<span style="color: #333333">.</span>execute(<span style="background-color: #fff0f0">&#39;PRAGMA TABLE_INFO({})&#39;</span><span style="color: #333333">.</span>format(table_name))
+    info <span style="color: #333333">=</span> c<span style="color: #333333">.</span>fetchall()
+    
+    <span style="color: #008800; font-weight: bold">if</span> print_out:
+        <span style="color: #008800; font-weight: bold">print</span>(<span style="background-color: #fff0f0">&quot;</span><span style="color: #666666; font-weight: bold; background-color: #fff0f0">\n</span><span style="background-color: #fff0f0">Column Info:</span><span style="color: #666666; font-weight: bold; background-color: #fff0f0">\n</span><span style="background-color: #fff0f0">ID, Name, Type, NotNull, DefaultVal, PrimaryKey&quot;</span>)
+        <span style="color: #008800; font-weight: bold">for</span> col <span style="color: #000000; font-weight: bold">in</span> info:
+            <span style="color: #008800; font-weight: bold">print</span>(col)
+    <span style="color: #008800; font-weight: bold">return</span> info
+
+<span style="color: #008800; font-weight: bold">def</span> <span style="color: #0066BB; font-weight: bold">values_in_col</span>(cursor, table_name, print_out<span style="color: #333333">=</span><span style="color: #007020">True</span>):
+    <span style="color: #DD4422">&quot;&quot;&quot; Returns a dictionary with columns as keys and the number of not-null </span>
+<span style="color: #DD4422">        entries as associated values.</span>
+<span style="color: #DD4422">    &quot;&quot;&quot;</span>
+    c<span style="color: #333333">.</span>execute(<span style="background-color: #fff0f0">&#39;PRAGMA TABLE_INFO({})&#39;</span><span style="color: #333333">.</span>format(table_name))
+    info <span style="color: #333333">=</span> c<span style="color: #333333">.</span>fetchall()
+    col_dict <span style="color: #333333">=</span> <span style="color: #007020">dict</span>()
+    <span style="color: #008800; font-weight: bold">for</span> col <span style="color: #000000; font-weight: bold">in</span> info:
+        col_dict[col[<span style="color: #0000DD; font-weight: bold">1</span>]] <span style="color: #333333">=</span> <span style="color: #0000DD; font-weight: bold">0</span>
+    <span style="color: #008800; font-weight: bold">for</span> col <span style="color: #000000; font-weight: bold">in</span> col_dict:
+        c<span style="color: #333333">.</span>execute(<span style="background-color: #fff0f0">&#39;SELECT ({0}) FROM {1} WHERE {0} IS NOT NULL&#39;</span><span style="color: #333333">.</span>format(col, table_name))
+        <span style="color: #888888"># In my case this approach resulted in a better performance than using COUNT</span>
+        number_rows <span style="color: #333333">=</span> <span style="color: #007020">len</span>(c<span style="color: #333333">.</span>fetchall())
+        col_dict[col] <span style="color: #333333">=</span> number_rows
+    <span style="color: #008800; font-weight: bold">if</span> print_out:
+        <span style="color: #008800; font-weight: bold">print</span>(<span style="background-color: #fff0f0">&quot;</span><span style="color: #666666; font-weight: bold; background-color: #fff0f0">\n</span><span style="background-color: #fff0f0">Number of entries per column:&quot;</span>)
+        <span style="color: #008800; font-weight: bold">for</span> i <span style="color: #000000; font-weight: bold">in</span> col_dict<span style="color: #333333">.</span>items():
+            <span style="color: #008800; font-weight: bold">print</span>(<span style="background-color: #fff0f0">&#39;{}: {}&#39;</span><span style="color: #333333">.</span>format(i[<span style="color: #0000DD; font-weight: bold">0</span>], i[<span style="color: #0000DD; font-weight: bold">1</span>]))
+    <span style="color: #008800; font-weight: bold">return</span> col_dict
+
+
+<span style="color: #008800; font-weight: bold">if</span> __name__ <span style="color: #333333">==</span> <span style="background-color: #fff0f0">&#39;__main__&#39;</span>:
+
+    sqlite_file <span style="color: #333333">=</span> <span style="background-color: #fff0f0">&#39;my_first_db.sqlite&#39;</span>
+    table_name <span style="color: #333333">=</span> <span style="background-color: #fff0f0">&#39;my_table_3&#39;</span>
+
+    conn, c <span style="color: #333333">=</span> connect(sqlite_file)
+    total_rows(c, table_name, print_out<span style="color: #333333">=</span><span style="color: #007020">True</span>)
+    table_col_info(c, table_name, print_out<span style="color: #333333">=</span><span style="color: #007020">True</span>)
+    values_in_col(c, table_name, print_out<span style="color: #333333">=</span><span style="color: #007020">True</span>) <span style="color: #888888"># slow on large data bases</span>
+    
+    close(conn)
+</pre></div>
+
+
+<p>Download the script: <a href="https://raw.github.com/rasbt/python_sqlite_code/master/code/print_db_info.py">print_db_info.py</a>
+<br>
+<br>
+<img src="../Images/8_sqlite3_print_db_info_1.png" alt="8_sqlite3_print_db_info_1.png" />
+<br>
+<br>
+<img src="../Images/8_sqlite3_print_db_info_2.png" alt="8_sqlite3_print_db_info_2.png" /></p>
+
+<p><a name="conclusion"></a>
+<br></p>
+
+<h2>Conclusion</h2>
+
+<p>I really hope this tutorial was helpful to you to get started with SQLite database operations via Python. I have been using the <code>sqlite3</code> module a lot recently, and it has found its way into most of my programs for larger data analyses.<br/>
+Currently, I am working on a novel drug screening software that requires me to store 3D structures and other functional data for ~13 million chemical compounds, and SQLite has been an invaluable part of my program to quickly store, query, analyze, and share my data.<br/>
+Another smaller project that uses <code>sqlite3</code> in Python would be the twitter-follow-bot2, if you are interested, you can check it out at: <a href="https://github.com/rasbt/twitter-follow-bot2">https://github.com/rasbt/twitter-follow-bot2</a>.  <br><br>
+If you have any suggestions or questions, please don't hesitate to write me an <a href="mailto:se.raschka@gmail.com">
+email</a> or leave a comment in the comment section below! I am looking forward to your opinions and ideas, and I hope I can improve and extend this tutorial in future.</p>
+
+
 
 
 
